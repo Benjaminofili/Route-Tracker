@@ -16,10 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AssistChip
@@ -27,6 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +39,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -139,6 +145,15 @@ fun RunDetailView(
                 .verticalScroll(rememberScrollState())
         ) {
             // Interactive Map Visualizer
+            var isDarkMap by remember { mutableStateOf(false) }
+            val mapProperties = remember(isDarkMap) {
+                MapProperties(
+                    isMyLocationEnabled = false,
+                    mapStyleOptions = if (isDarkMap) MapStyles.darkStyleOptions else null
+                )
+            }
+            val polylineColor = if (isDarkMap) Color(0xFF00E676) else Color(0xFF00897B)
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +162,7 @@ fun RunDetailView(
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
-                    properties = remember { MapProperties(isMyLocationEnabled = false) },
+                    properties = mapProperties,
                     uiSettings = remember {
                         MapUiSettings(
                             zoomControlsEnabled = false,
@@ -159,7 +174,7 @@ fun RunDetailView(
                     if (runPoints.isNotEmpty()) {
                         Polyline(
                             points = runPoints.map { it.toLatLng() },
-                            color = Color(0xFF00897B),
+                            color = polylineColor,
                             width = 14f
                         )
 
@@ -177,6 +192,23 @@ fun RunDetailView(
                             icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
                         )
                     }
+                }
+
+                FloatingActionButton(
+                    onClick = { isDarkMap = !isDarkMap },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(40.dp)
+                        .testTag("detail_toggle_dark_map"),
+                    containerColor = if (isDarkMap) Color(0xFF2C3848) else MaterialTheme.colorScheme.surface,
+                    contentColor = if (isDarkMap) Color(0xFFFFD54F) else MaterialTheme.colorScheme.onSurfaceVariant
+                ) {
+                    Icon(
+                        if (isDarkMap) Icons.Default.LightMode else Icons.Default.DarkMode,
+                        contentDescription = "Toggle Dark Map",
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 

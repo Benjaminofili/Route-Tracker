@@ -44,6 +44,8 @@ data class RouteOption(
 data class LiveRunState(
     val isTracking: Boolean = false,
     val isPaused: Boolean = false,
+    val isAutoPaused: Boolean = false,
+    val isAutoPauseEnabled: Boolean = true,
     val elapsedTimeSeconds: Long = 0L,
     val distanceMeters: Double = 0.0,
     val currentPaceSecondsPerKm: Int = 0,

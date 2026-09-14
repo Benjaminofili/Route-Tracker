@@ -1,9 +1,13 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -24,7 +28,6 @@ import com.example.util.GeoUtils
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
@@ -42,8 +45,10 @@ fun MapContainer(
     selectedRoute: RouteOption?,
     liveRunState: LiveRunState,
     viewingRecord: CompletedRun?,
+    isDarkMap: Boolean = false,
     modifier: Modifier = Modifier,
-    onRouteSelected: (RouteOption) -> Unit
+    onRouteSelected: (RouteOption) -> Unit,
+    onToggleDarkMap: () -> Unit = {}
 ) {
     val initialCameraPosition = remember(currentLocation) {
         CameraPosition.fromLatLngZoom(currentLocation.toLatLng(), 14.5f)
@@ -59,9 +64,19 @@ fun MapContainer(
             compassEnabled = true
         )
     }
-    val mapProperties = remember {
-        MapProperties(isMyLocationEnabled = false)
+
+    val mapProperties = remember(isDarkMap) {
+        MapProperties(
+            isMyLocationEnabled = false,
+            mapStyleOptions = if (isDarkMap) MapStyles.darkStyleOptions else null
+        )
     }
+
+    // High-contrast color palette adaptively paired with the map theme
+    val selectedRouteColor = if (isDarkMap) Color(0xFF00E5FF) else Color(0xFF1976D2)
+    val unselectedRouteColor = if (isDarkMap) Color(0x99546E7A) else Color(0x77607D8B)
+    val livePathColor = if (isDarkMap) Color(0xFFFF5722) else Color(0xFFFF5722)
+    val completedPathColor = if (isDarkMap) Color(0xFF00E676) else Color(0xFF00897B)
 
     // Auto-fit camera when a route is selected or when viewing record changes
     LaunchedEffect(selectedRoute, viewingRecord) {
@@ -82,7 +97,6 @@ fun MapContainer(
                     durationMs = 800
                 )
             } catch (e: Exception) {
-                // If map not yet fully laid out, animate to center
                 val center = pointsToFit[pointsToFit.size / 2]
                 cameraPositionState.animate(
                     CameraUpdateFactory.newLatLngZoom(center.toLatLng(), 14f),
@@ -112,26 +126,30 @@ fun MapContainer(
             uiSettings = uiSettings
         ) {
             // 1. Current Location Marker & Pulse Circle
+            val circleColor = if (isDarkMap) Color(0x4400E5FF) else Color(0x332196F3)
+            val strokeColor = if (isDarkMap) Color(0xFF00E5FF) else Color(0xFF2196F3)
             Circle(
                 center = currentLocation.toLatLng(),
                 radius = 40.0,
-                fillColor = Color(0x332196F3),
-                strokeColor = Color(0xFF2196F3),
+                fillColor = circleColor,
+                strokeColor = strokeColor,
                 strokeWidth = 3f
             )
             Marker(
                 state = MarkerState(position = currentLocation.toLatLng()),
                 title = "Current Location",
                 snippet = "Start / Finish Point",
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+                icon = BitmapDescriptorFactory.defaultMarker(
+                    if (isDarkMap) BitmapDescriptorFactory.HUE_CYAN else BitmapDescriptorFactory.HUE_AZURE
+                )
             )
 
-            // 2. Unselected Generated Routes (rendered in subtle gray/blue)
+            // 2. Unselected Generated Routes
             for (route in generatedRoutes) {
                 if (route.id != selectedRoute?.id && route.points.isNotEmpty()) {
                     Polyline(
                         points = route.points.map { it.toLatLng() },
-                        color = Color(0x77607D8B),
+                        color = unselectedRouteColor,
                         width = 8f,
                         clickable = true,
                         onClick = { onRouteSelected(route) }
@@ -144,13 +162,12 @@ fun MapContainer(
                 if (selectedRoute.points.isNotEmpty()) {
                     Polyline(
                         points = selectedRoute.points.map { it.toLatLng() },
-                        color = Color(0xFF1976D2),
+                        color = selectedRouteColor,
                         width = 13f,
                         zIndex = 2f
                     )
                 }
 
-                // Intermediate Waypoint Markers
                 selectedRoute.waypoints.forEachIndexed { index, wp ->
                     Marker(
                         state = MarkerState(position = wp.toLatLng()),
@@ -165,14 +182,14 @@ fun MapContainer(
             if (liveRunState.simplifiedPoints.isNotEmpty()) {
                 Polyline(
                     points = liveRunState.simplifiedPoints.map { it.toLatLng() },
-                    color = Color(0xFFFF5722),
+                    color = livePathColor,
                     width = 14f,
                     zIndex = 5f
                 )
             } else if (liveRunState.rawPoints.isNotEmpty()) {
                 Polyline(
                     points = liveRunState.rawPoints.map { it.toLatLng() },
-                    color = Color(0xFFFF5722),
+                    color = livePathColor,
                     width = 14f,
                     zIndex = 5f
                 )
@@ -197,7 +214,7 @@ fun MapContainer(
                 if (recordPoints.isNotEmpty()) {
                     Polyline(
                         points = recordPoints.map { it.toLatLng() },
-                        color = Color(0xFF00897B),
+                        color = completedPathColor,
                         width = 14f,
                         zIndex = 4f
                     )
@@ -210,20 +227,37 @@ fun MapContainer(
             }
         }
 
-        // Floating Recenter Button
-        FloatingActionButton(
-            onClick = {
-                val target = liveRunState.lastLocation ?: currentLocation
-                cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(target.toLatLng(), 15f))
-            },
+        // Floating Map Controls (Recenter & Dark/Light Theme Toggle)
+        Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 16.dp, end = 16.dp)
-                .testTag("recenter_button"),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary
+                .padding(top = 16.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.End
         ) {
-            Icon(Icons.Default.MyLocation, contentDescription = "Recenter Map")
+            FloatingActionButton(
+                onClick = {
+                    val target = liveRunState.lastLocation ?: currentLocation
+                    cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(target.toLatLng(), 15f))
+                },
+                modifier = Modifier.testTag("recenter_button"),
+                containerColor = if (isDarkMap) Color(0xFF2C3848) else MaterialTheme.colorScheme.surface,
+                contentColor = if (isDarkMap) Color(0xFF00E5FF) else MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.MyLocation, contentDescription = "Recenter Map")
+            }
+
+            FloatingActionButton(
+                onClick = onToggleDarkMap,
+                modifier = Modifier.testTag("toggle_dark_map_button"),
+                containerColor = if (isDarkMap) Color(0xFF2C3848) else MaterialTheme.colorScheme.surface,
+                contentColor = if (isDarkMap) Color(0xFFFFD54F) else MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Icon(
+                    if (isDarkMap) Icons.Default.LightMode else Icons.Default.DarkMode,
+                    contentDescription = if (isDarkMap) "Switch to Light Map Theme" else "Switch to Dark Map Theme"
+                )
+            }
         }
     }
 }

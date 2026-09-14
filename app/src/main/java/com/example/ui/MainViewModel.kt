@@ -43,6 +43,7 @@ data class MainUiState(
     val showScoutSheet: Boolean = false,
     val showHistorySheet: Boolean = false,
     val showRunHistoryScreen: Boolean = false,
+    val isDarkMapEnabled: Boolean = false,
     val lastFinishedRun: CompletedRun? = null,
     val viewingRunRecord: CompletedRun? = null,
     val showBackgroundRationale: Boolean = false
@@ -246,6 +247,22 @@ class MainViewModel(
 
     fun setShowBackgroundRationale(show: Boolean) {
         _uiState.value = _uiState.value.copy(showBackgroundRationale = show)
+    }
+
+    fun toggleDarkMapTheme() {
+        _uiState.value = _uiState.value.copy(isDarkMapEnabled = !_uiState.value.isDarkMapEnabled)
+    }
+
+    fun setDarkMapTheme(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(isDarkMapEnabled = enabled)
+    }
+
+    fun setAutoPauseEnabled(enabled: Boolean) {
+        TrackingManager.setAutoPauseEnabled(enabled)
+    }
+
+    fun simulateStationary() {
+        TrackingManager.simulateStationary()
     }
 
     fun simulateNextStep() {

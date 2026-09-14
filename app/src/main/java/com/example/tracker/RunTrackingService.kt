@@ -167,7 +167,7 @@ class RunTrackingService : Service() {
         val timeStr = GeoUtils.formatDuration(state.elapsedTimeSeconds)
         val paceStr = GeoUtils.formatPace(state.currentPaceSecondsPerKm)
 
-        val statusText = if (state.isPaused) "Paused" else "Running"
+        val statusText = if (state.isPaused) "Paused" else if (state.isAutoPaused) "Auto-Paused (Stopped)" else "Running"
         val contentText = "$distStr • $timeStr • $paceStr"
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)

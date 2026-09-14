@@ -162,8 +162,10 @@ fun MainScreen(viewModel: MainViewModel) {
                         selectedRoute = uiState.selectedRoute,
                         liveRunState = liveRunState,
                         viewingRecord = uiState.viewingRunRecord,
+                        isDarkMap = uiState.isDarkMapEnabled,
                         modifier = Modifier.fillMaxSize(),
-                        onRouteSelected = { viewModel.selectRoute(it) }
+                        onRouteSelected = { viewModel.selectRoute(it) },
+                        onToggleDarkMap = { viewModel.toggleDarkMapTheme() }
                     )
 
                     // Top Status Overlay (e.g. Viewing past record banner)
@@ -212,7 +214,9 @@ fun MainScreen(viewModel: MainViewModel) {
                                 onPause = { viewModel.pauseLiveRun(context) },
                                 onResume = { viewModel.resumeLiveRun(context) },
                                 onStop = { viewModel.stopLiveRun(context) },
-                                onSimulateStep = { viewModel.simulateNextStep() }
+                                onSimulateStep = { viewModel.simulateNextStep() },
+                                onSimulateStop = { viewModel.simulateStationary() },
+                                onToggleAutoPause = { viewModel.setAutoPauseEnabled(it) }
                             )
                         } else {
                             RouteGeneratorPane(
