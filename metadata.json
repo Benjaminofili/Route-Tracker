@@ -1,0 +1,6 @@
+{
+  "name": "Morning Run",
+  "description": "Route planner and live run tracker featuring customized loop generation (difficulty, parks/urban/scenic filters), path duration & elevation profiling, high-accuracy GPS tracking, and complete run history with personal bests.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
